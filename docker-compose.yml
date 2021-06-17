@@ -1,0 +1,7 @@
+version: '3'
+services:
+  app:
+    image: zendesk-bot
+    volumes:
+      - .:/work
+  
