@@ -1,29 +1,59 @@
-from .db import Database
-from .processor import Processor
-
+import pyfiglet
 import click
 
-def list_searchable_fields():
-    print("Getting searchable fields")
+from .processor import Processor
+
+
+@click.group()
+def cli():
+    pass
+
+
+def help():
+    print(
+        """
+    Commands:
+        help
+        search
+        search <entity> <field> <value>
+        load
+        quit
+        fields
+    """
+    )
+
 
 @click.command()
-def main():
+@click.option("--command", default="help", help="Choose command")
+def main(command):
 
-    choice = click.prompt("""
-    Select search options:
-    1: Search zendesk
-    2: View a list of searchable fields
-    """, type=str)
+    header = pyfiglet.figlet_format("Zendesk bot", font="slant")
+    print(header)
 
-    if choice == "1":
-        processor = Processor()
-        processor.ask()
+    process = Processor()
 
-    elif choice == "2":
-        list_searchable_fields()
-    else:
-        click.exceptions("Invalid options")
+    while True:
+        choice = str.lower(click.prompt("Command: ", type=str)).strip()
 
+        if choice in ("exit", "quit"):
+            print("Bye")
+            break
+        elif choice == "help":
+            help()
+        elif choice == "fields":
+            process.list_searchable_fields()
+        elif choice == "load":
+            process.load_db()
+        elif choice == "search":
+            process.ask()
+        elif choice.startswith("search"):
+            res = process.parse_query(choice)
+            if res:
+                print("Invalid query pattern")
+        elif choice == "clear":
+            click.clear()
+        else:
+            print("Invalid command")
 
 
 if __name__ == "__main__":

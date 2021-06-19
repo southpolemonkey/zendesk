@@ -10,17 +10,6 @@ def db():
     db.load()
     return db
 
-# def test_search_field_by_value(db):
-#
-#     process = Processor()
-#
-#     item = '1'
-#     field = '_id'
-#     value = '71'
-#
-#     result = process.search(db, item, field, value)
-#     assert len(result) == 1
-
 
 class TestProcessor:
 
@@ -59,8 +48,8 @@ class TestTable:
 
     def test__search_field_no_index(self, db):
         users_table = db.collections.get('users')
-        res = users_table._search_by_index('url', "http://initech.zendesk.com/api/v2/users/1.json")
-        assert res == None
+        res = users_table._sequential_search('organization_id', "104")
+        assert len(res) >= 1
 
 
 class TestIndex:
@@ -68,11 +57,6 @@ class TestIndex:
     def test_initialisation_index(self):
         index = Index('_id')
         assert index.references == {}
-
-    def test_search_index(self):
-        index = Index('_id')
-        reference = index.references.get(71)
-        assert reference == None
 
 
 

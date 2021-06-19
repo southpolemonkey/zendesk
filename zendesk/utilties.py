@@ -1,7 +1,9 @@
 import logging
+from logging import Logger
 from .config import LOGGER_LEVEL
 
-def get_logger(name):
+
+def get_logger(name: str) -> Logger:
     logger = logging.getLogger(name)
     logger.setLevel(LOGGER_LEVEL)
 

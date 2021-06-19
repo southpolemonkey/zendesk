@@ -1,52 +1,110 @@
+from dataclasses import dataclass
+from typing import Dict, Optional, List
+
 import click
-from pprint import pprint
 
 from .db import Database
+from .utilties import get_logger
 
-class Processor():
+
+logger = get_logger(__name__)
+
+global database
+
+
+@dataclass
+class UserQueryResponse:
+    pass
+
+
+@dataclass
+class OrganizationQueryResponse:
+    pass
+
+
+@dataclass
+class TicketQueryResponse:
+    pass
+
+
+class Processor:
     """
-    Client query processor
+    Query order processor
     """
 
     def __init__(self):
-        self._name = 'processor'
-        self.item = None
+        self._name = "processor"
 
-    def search(self, db, item, field, value):
-        results = []
-        if item == '1':
-            data = db.collections.get('users')
-        elif item == '2':
-            data = db.collections.get('tickets')
-        elif item == '3':
-            data = db.collections.get('organizations')
-        else:
-            data = []
+    def ask(self) -> None:
+        """
+        Interactive query mode
+        """
 
-        for row in data:
-            target = row.get(field)
-            if target == value:
-                results.append(row)
-        return results
+        global database
 
-
-    def ask(self):
-        item = click.prompt("Select 1: Users or 2: Tickets or 3: Organizations", type=str)
+        entity = click.prompt("Enter search table", type=str)
         field = click.prompt("Enter search field", type=str)
-        value = click.prompt("Enter search value", type=int)
+        value = click.prompt("Enter search value", type=str)
 
-        db = Database()
+        click.echo(f"Searching {field} match {value} from {entity}")
 
-        click.echo(f"Searching {field} match {value} from {item}")
+        try:
+            res = database.search(entity, field, value)
+            logger.debug(res)
+            self.present(res)
+        except NameError:
+            if click.confirm(
+                "Database is not connected yet, could you like to connect?"
+            ):
+                self.load_db()
 
-        results = self.search(db, item, field, value)
-        self.present(results)
-
-
-    def present(self, results):
+    def present(self, results: List[Dict]) -> None:
+        """
+        beautify json objects
+        """
+        print("Results:\n")
         for result in results:
-            pprint(result)
+            for k, v in result.items():
+                if isinstance(v, list):
+                    print("{:<20}|{:>50}".format(k, ", ".join(v)))
+                else:
+                    print("{:<20}|{:>50}".format(k, v))
+            print()
 
+    def load_db(self):
+        global database
+        database = Database()
+        database.load()
 
+    def parse_query(self, query: str) -> Optional[Dict]:
+        global database
+        try:
+            import re
 
+            if match := re.match(r"(^search)\s(\w+)\s(\w+)\s(\w+\s?\w?)$", query):
+                if len(match.groups()) == 4:
+                    entity = match.groups()[1]
+                    field = match.groups()[2]
+                    value = match.groups()[3]
+                    logger.debug(f"Search {entity} {field} {value}")
+                    res = database.search(entity, field, value)
+                    if res:
+                        self.present(res)
+            else:
+                click.echo(
+                    """
+                    Unrecognized query pattern. 
+                    Use:  
+                        search (interactive model)
+                        search <entity> <field> <value>
+                """
+                )
+        except NameError:
+            if click.confirm(
+                "Database is not connected yet, could you like to connect?"
+            ):
+                self.load_db()
 
+    def list_searchable_fields(self) -> None:
+        # TODO: implement
+        print("Method not implemented yet")
