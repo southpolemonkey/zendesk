@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, List
+from .model import Organizations, Tickets, Users
 
 import click
 
@@ -11,6 +12,7 @@ logger = get_logger(__name__)
 
 global database
 
+DATAMODELS = {'organization': Organizations, 'ticket': Tickets, 'users': Users}
 
 @dataclass
 class UserQueryResponse:
@@ -76,20 +78,21 @@ class Processor:
         database = Database()
         database.load()
 
-    def parse_query(self, query: str) -> Optional[Dict]:
+    def handle(self, query: str):
+        entity, field, value = self.parse_query(query)
+        self.send_query(entity, field, value)
+
+    def parse_query(self, query: str):
         global database
         try:
             import re
-
-            if match := re.match(r"(^search)\s(\w+)\s(\w+)\s(\w+\s?\w?)$", query):
+            if match := re.match(r"(search)\s(\w+)\s(\w+)\s?([\w+\s.+=\-!?@()\[\]<>\/\\|\$\&\*]{0,})$", query):
                 if len(match.groups()) == 4:
                     entity = match.groups()[1]
                     field = match.groups()[2]
                     value = match.groups()[3]
                     logger.debug(f"Search {entity} {field} {value}")
-                    res = database.search(entity, field, value)
-                    if res:
-                        self.present(res)
+                    return entity, field, value
             else:
                 click.echo(
                     """
@@ -105,6 +108,23 @@ class Processor:
             ):
                 self.load_db()
 
+
+    def send_query(self, entity:str, field:str, value:str):
+        global database
+        if res := database.search(entity, field, value):
+            self.present(res)
+
+
+
     def list_searchable_fields(self) -> None:
-        # TODO: implement
-        print("Method not implemented yet")
+
+        print("Searchable fields")
+
+        for name, model in DATAMODELS.items():
+            columns = model.__annotations__.keys()
+            print(f"{name}")
+            print(f"="*20)
+            for col in columns:
+                print(col)
+            print()
+

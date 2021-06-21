@@ -33,7 +33,7 @@ def main(command):
     process = Processor()
 
     while True:
-        choice = str.lower(click.prompt("Command: ", type=str)).strip()
+        choice = str.lower(click.prompt("> ", type=str)).strip()
 
         if choice in ("exit", "quit"):
             print("Bye")

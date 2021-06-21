@@ -10,12 +10,24 @@ def db():
     db.load()
     return db
 
+@pytest.fixture()
+def processor():
+    processor = Processor()
+    return processor
 
 class TestProcessor:
 
-    def test_initialise_processor(self):
-        processor = Processor()
+    def test_initialise_processor(self, processor):
+
         assert isinstance(processor, Processor)
+
+    def test_parse_query(self, processor):
+        query = "search users organization_id value could be long string"
+        entity, field, value = processor.parse_query(query)
+        assert entity == "users"
+        assert field == "organization_id"
+        assert value == "value could be long string"
+
 
 
 class TestDatabase:
