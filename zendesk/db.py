@@ -19,6 +19,24 @@ class TableNotExistsException(Exception):
 class ColumnNotExistsException(Exception):
     pass
 
+@dataclass
+class ForeignKeys:
+    foreign_table:str
+    foreign_key:str
+    local_key:str
+    local_table:str
+
+
+fks = {
+    'users': [
+        ForeignKeys(local_key="organization_id", local_table="users", foreign_key="_id", foreign_table="organization")]
+    ,
+    'tickets': [
+        ForeignKeys(local_key="submitter_id", local_table="tickets", foreign_key="_id", foreign_table="users"),
+        ForeignKeys(local_key="organization_id", local_table="tickets", foreign_key="_id",foreign_table="organization")
+    ]
+}
+
 
 @dataclass
 class Index:
@@ -39,9 +57,9 @@ class Index:
 @dataclass
 class Table:
     name: str
-    # TODO: design primary key and foreign key structure
+    # TODO: hardcode foreign key in a dictionary for each table
     primary_key: str = ""
-    foreign_key: str = ""
+    foreign_key: List[ForeignKeys] = field(default_factory=list)
     records: List[Dict[Any, Any]] = field(default_factory=list)
     indexes: Dict[str, Index] = field(default_factory=lambda: defaultdict(Index))
 
@@ -57,6 +75,10 @@ class Table:
             idx.references[key].append(i)
 
         self.indexes[idx_col] = idx
+
+    def add_foreign_keys(self)-> None:
+        self.foreign_key = fks.get(self.name, [])
+
 
     def _search_by_index(self, field: str, value: str) -> Optional[List[int]]:
         """
@@ -75,6 +97,10 @@ class Table:
                     res.append(record)
         return res
 
+    def _fetch_foreign_fields(self):
+        raise NotImplementedError
+    
+    # TODO: search foreign keys
     def search(self, field: str, value: str) -> List[Any]:
 
         logger.debug(f"{self.name}: searching {field}={value}")
@@ -98,22 +124,23 @@ class Database:
         Load files matching names in the give @tables parameters
         """
 
-        index_keys = {"users": "_id", "organizations": "_id", "tickets": "submitter_id"}
+        pkeys = {"users": "_id", "organizations": "_id", "tickets": "submitter_id"}
 
         for table_name in tables:
             filename = os.path.join(resources, table_name + ".json")
             logger.info(f"Loading {filename}")
 
-            idx = index_keys.get(table_name)
 
-            table = Table(name=table_name, primary_key=idx)
+            table = Table(name=table_name, primary_key=pkeys.get(table_name,""), foreign_key=fks.get(table_name, []))
 
             try:
+                # TODO: lazy load bigfile
                 with open(filename, "r") as f:
                     source = json.load(f)
                     table.records = source
                     self.collections[table_name] = table
                     table.build_index()
+                    table.add_foreign_keys()
             except FileNotFoundError:
                 logger.error(f"{filename} not exists")
 
