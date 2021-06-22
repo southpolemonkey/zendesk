@@ -82,7 +82,8 @@ class TestDatabase:
 
     def test_search(self, db):
         res = db.search('users', "name", "Francisca Rasmussen")
-        assert res[0].get("_id") == 1
+        assert len(res[0].get('organizations')) >= 1
+        assert len(res[0].get('tickets')) >= 1
 
 
     def test__exception(self, db):

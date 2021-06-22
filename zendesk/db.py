@@ -94,10 +94,11 @@ class Table:
     def _sequential_search(
         self, field: str, value: str, alias: List[Dict[str, str]] = "all"
     ) -> List[Any]:
+        logger.info(f"Seq scan {self.name} {field} {value} {alias}")
         res = []
         for record in self.records:
             if find := record.get(field):
-                if str(find) == value:
+                if str(find).lower() == str(value).lower():
                     if alias == "all":
                         res.append(record)
                     elif isinstance(alias, list):
@@ -147,7 +148,7 @@ class Table:
         alias =  [{'alias': 'organization_name', 'field': 'name'}]
         """
 
-        logger.debug(f"{self.name}: searching {field}={value}")
+        logger.info(f"{self.name}: searching {field}={value}")
         indexes = self._index_search(field, value)
 
         if indexes:
@@ -233,7 +234,7 @@ class Database:
                         foreign_key.get('local_table_key'),
                         foreign_key.get('external_table_key'),
                         self.fetch_collection(foreign_key.get('external_table_name')),
-                        foreign_key.get('alias')
+                        foreign_key.get('required_fields')
                     )
 
                 foreign_key_list.append(query)
