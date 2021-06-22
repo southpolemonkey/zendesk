@@ -1,6 +1,6 @@
 import pytest
 from zendesk.processor import Processor
-from zendesk.db import Database, Table, Index, TableNotExistsException
+from zendesk.db import Database, Table, Index, TableNotExistsException, ForeignKeys
 
 from typing import Dict
 
@@ -9,6 +9,19 @@ def db():
     db = Database()
     db.load()
     return db
+
+@pytest.fixture()
+def users(db) -> Table:
+    return db.collections.get('users')
+
+@pytest.fixture()
+def organizations(db) -> Table:
+    return db.collections.get('organizations')
+
+@pytest.fixture()
+def tickets(db) -> Table:
+    return db.collections.get('tickets')
+
 
 @pytest.fixture()
 def processor():
@@ -22,12 +35,11 @@ class TestProcessor:
         assert isinstance(processor, Processor)
 
     def test_parse_query(self, processor):
-        query = "search users organization_id value could be long string"
+        query = "search users organization_id value could be long string and contains @?"
         entity, field, value = processor.parse_query(query)
         assert entity == "users"
         assert field == "organization_id"
-        assert value == "value could be long string"
-
+        assert value == "value could be long string and contains @?"
 
 
 class TestDatabase:
@@ -44,24 +56,27 @@ class TestDatabase:
 
 class TestTable:
 
-    def test_build_table(self, db):
-        users = db.collections.get('users')
 
-    def test_build_index(self, db):
-        users_indexes = db.collections.get('users').indexes
+    def test_build_index(self, users):
+        users_indexes = users.indexes
         for key, index in users_indexes.items():
             assert isinstance(key, str)
             assert isinstance(index, Index)
 
-    def test__search_field_index(self, db):
-        users_table = db.collections.get('users')
-        res = users_table._search_by_index('_id', 1)
-        assert isinstance(res, list)
+    def test_search(self, users):
+        res = users.search('organization_id', "104")
+        assert len(res) == 4
 
-    def test__search_field_no_index(self, db):
-        users_table = db.collections.get('users')
-        res = users_table._sequential_search('organization_id', "104")
-        assert len(res) >= 1
+    def test_join(self, users, organizations, tickets):
+        res = users.search('_id', '71')
+        fks = [
+            ForeignKeys('organization_id', '_id', organizations),
+            ForeignKeys('_id', 'submitter_id', tickets),
+        ]
+        enriched = users.join(res, fks)
+        assert len(enriched.get('organizations')) == 1
+        assert len(enriched.get('tickets')) == 3
+
 
 
 class TestIndex:
@@ -69,6 +84,12 @@ class TestIndex:
     def test_initialisation_index(self):
         index = Index('_id')
         assert index.references == {}
+
+class TestForeignKey:
+
+    def test_initialize_foreign_key(self):
+        fk = ForeignKeys('submitter_id', '_id', None)
+        assert isinstance(fk, ForeignKeys)
 
 
 
