@@ -33,7 +33,7 @@ tables:
             alias: organization_name
           - field: domain_names
             alias: domain_names
-      - external_table_name: user
+      - external_table_name: users
         external_table_key: submitter_id
         local_table_key: _id
         required_fields:
