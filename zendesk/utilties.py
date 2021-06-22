@@ -2,6 +2,7 @@ import logging
 from logging import Logger
 import os
 from os.path import dirname, realpath, join, exists
+from typing import Dict, Any
 
 import yaml
 
@@ -32,7 +33,7 @@ def get_logger(name: str) -> Logger:
     return logger
 
 
-def read_yaml(file: str):
+def read_yaml(file: str) -> Dict[str, Any]:
     with open(file, 'r') as f:
         dic = yaml.load(f, Loader=yaml.FullLoader)
         return dic

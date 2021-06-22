@@ -229,14 +229,13 @@ class Database:
 
             foreign_key_list = []
             for foreign_key in foreign_keys:
-                query = [
-                    ForeignKeys(
+                query = ForeignKeys(
                         foreign_key.get('local_table_key'),
                         foreign_key.get('external_table_key'),
                         self.fetch_collection(foreign_key.get('external_table_name')),
                         foreign_key.get('alias')
                     )
-                ]
+
                 foreign_key_list.append(query)
 
             enriched = table.join(res, foreign_key_list)

@@ -45,8 +45,8 @@ class Processor:
                 "Database is not connected yet, could you like to connect?"
             ):
                 self.load_db()
-        except TableNotExistsException:
-            click.echo(f"{entity} not found in database")
+        # except TableNotExistsException:
+        #     click.echo(f"{entity} not found in database")
 
     def present(self, results: List[Dict]) -> None:
         """
@@ -95,8 +95,8 @@ class Processor:
             try:
                 if res := database.search(entity, field, value):
                     self.present(res)
-            except TableNotExistsException:
-                click.echo(f"{entity} not found in database")
+            # except TableNotExistsException:
+            #     click.echo(f"{entity} not found in database")
             except NameError:
                 if click.confirm(
                     "Database is not connected yet, could you like to connect?"

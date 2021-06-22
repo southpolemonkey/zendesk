@@ -80,6 +80,11 @@ class TestDatabase:
 
         assert len(db.collections) == 3
 
+    def test_search(self, db):
+        res = db.search('users', "name", "Francisca Rasmussen")
+        assert res[0].get("_id") == 1
+
+
     def test__exception(self, db):
         with pytest.raises(TableNotExistsException):
             db.search('table_not_exists', 'field', 'value')

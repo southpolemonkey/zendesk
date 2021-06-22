@@ -4,7 +4,7 @@ tables:
     index:
       - "_id"
     external_fields:
-      - external_table_name: organization
+      - external_table_name: organizations
         external_table_key: _id
         local_table_key: organization_id
         required_fields:
@@ -25,7 +25,7 @@ tables:
       - "submitter_id"
       - "organization_id"
     external_fields:
-      - external_table_name: organization
+      - external_table_name: organizations
         external_table_key: _id
         local_table_key: organization_id
         required_fields:
