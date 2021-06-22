@@ -129,8 +129,10 @@ class Processor:
             return "", False
 
 
-    def list_searchable_fields(self) -> None:
-
+    def show_tables(self) -> None:
+        '''
+        List all fields in each table
+        '''
         print("Searchable fields")
 
         for name, model in DATAMODELS.items():
@@ -140,3 +142,17 @@ class Processor:
             for col in columns:
                 print(col)
             print()
+
+    def show_db(self) -> None:
+        '''
+        List all tables in database
+        '''
+        try:
+            global database
+            for table in database.collections.keys():
+                print(table)
+        except NameError:
+            if click.confirm(
+                "Database is not connected yet, could you like to connect?"
+            ):
+                self.load_db()

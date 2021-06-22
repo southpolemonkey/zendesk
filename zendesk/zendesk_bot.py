@@ -40,8 +40,10 @@ def main(command):
             break
         elif choice == "help":
             help()
-        elif choice == "fields":
-            process.list_searchable_fields()
+        elif choice == "show table":
+            process.show_tables()
+        elif choice == "show db":
+            process.show_db()
         elif choice == "load":
             process.load_db()
         elif choice == "search":
