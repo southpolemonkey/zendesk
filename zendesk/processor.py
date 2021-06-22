@@ -14,20 +14,6 @@ global database
 
 DATAMODELS = {'organization': Organizations, 'ticket': Tickets, 'users': Users}
 
-@dataclass
-class UserQueryResponse:
-    pass
-
-
-@dataclass
-class OrganizationQueryResponse:
-    pass
-
-
-@dataclass
-class TicketQueryResponse:
-    pass
-
 
 class Processor:
     """
@@ -80,7 +66,8 @@ class Processor:
 
     def handle(self, query: str):
         entity, field, value = self.parse_query(query)
-        self.send_query(entity, field, value)
+        if res := database.search(entity, field, value):
+            self.present(res)
 
     def parse_query(self, query: str):
         global database
@@ -91,7 +78,7 @@ class Processor:
                     entity = match.groups()[1]
                     field = match.groups()[2]
                     value = match.groups()[3]
-                    logger.debug(f"Search {entity} {field} {value}")
+                    logger.info(f"Search {entity} {field} {value}")
                     return entity, field, value
             else:
                 click.echo(
@@ -107,13 +94,6 @@ class Processor:
                 "Database is not connected yet, could you like to connect?"
             ):
                 self.load_db()
-
-
-    def send_query(self, entity:str, field:str, value:str):
-        global database
-        if res := database.search(entity, field, value):
-            self.present(res)
-
 
 
     def list_searchable_fields(self) -> None:
