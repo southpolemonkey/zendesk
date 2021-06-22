@@ -6,7 +6,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .utilties import get_logger
-from .config import fkeys, pkeys, idx_keys
 
 logger = get_logger(__name__)
 
