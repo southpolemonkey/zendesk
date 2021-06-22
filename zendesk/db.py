@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json
 import os.path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Iterable
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -12,7 +12,6 @@ from .model import UsersQueryResponse, TicketsQueryResponse, OrganizationQueryRe
 logger = get_logger(__name__)
 
 resources = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources")
-
 
 class TableNotExistsException(Exception):
     pass
@@ -26,6 +25,7 @@ class ForeignKeys:
     field:str
     foreign_key:str
     foreign_table:Table
+    alias: Dict[str, str] = field(default_factory=lambda: defaultdict)
 
 @dataclass
 class Index:
@@ -86,20 +86,26 @@ class Table:
         """
         Search by field value and return the index of occurrence
         """
-
+        logger.info(f"indexing search...{self.name}: {field} {value}")
         if index_record := self.indexes.get(field):
             reference = index_record.search(str(value))
             return reference
 
-    def _sequential_search(self, field: str, value: str, required="all") -> List[Any]:
+    def _sequential_search(self, field: str, value: str, alias: Dict[str, str] = "all") -> List[Any]:
         res = []
         for record in self.records:
             if find := record.get(field):
                 if str(find) == value:
-                    res.append(record)
+                    if alias == "all":
+                        res.append(record)
+                    elif isinstance(alias, dict):
+                        filtered =  {alias.get(k): v for k, v in record.items() if k in alias}
+                        res.append(filtered)
+                    else:
+                        continue
         return res
 
-    def join(self, records: List[Dict], fks: List[ForeignKeys], required="all") -> List[Any]:
+    def join(self, records: List[Dict], fks: List[ForeignKeys]) -> List[Any]:
         '''
         Implementation of enrich table with external fields
         '''
@@ -108,16 +114,23 @@ class Table:
                 field = fk.field
                 foreign_key = fk.foreign_key
                 foreign_table = fk.foreign_table
+                alias = fk.alias
 
                 value = record.get(field)
-                res = foreign_table.search(foreign_key, value)
+                res = foreign_table.search(foreign_key, value, alias=alias)
                 record[foreign_table.name] = res
 
-        return record
+        return records
 
-    def search(self, field: str, value: str, required="all") -> List[Any]:
+    def search(self, field: str, value: str, alias: Dict[str, str] = "all") -> List[Any]:
         '''
-        interface of table search
+        Search interface by default returns all fields from the collections.
+        :param field: field name
+        :param value: value to search for
+        :param alias:
+            @key    selected fields
+            @value  alias in response
+        :return:
         '''
 
         logger.debug(f"{self.name}: searching {field}={value}")
@@ -126,11 +139,22 @@ class Table:
         if indexes:
             res = []
             for i in indexes:
-                record = self.records[i]
-                res.append(record)
+                if alias== "all":
+                    record = self.records[i]
+                    res.append(record)
+                elif isinstance(alias, dict):
+                    record = self.records[i]
+                    filtered = {}
+                    for k, v in alias.items():
+                        if k in record:
+                            filtered[v] = record.get(k)
+                    res.append(filtered)
+                else:
+                    continue
+
             return res
         else:
-            res = self._sequential_search(field, value)
+            res = self._sequential_search(field, value, alias)
             return res
 
 
@@ -165,7 +189,7 @@ class Database:
             except FileNotFoundError:
                 logger.error(f"{filename} not exists")
 
-    def fetch_collection(self, entity: str) -> Dict[str, Table]:
+    def fetch_collection(self, entity: str) -> Table:
         table = self.collections.get(entity)
         if table:
             return table
@@ -181,16 +205,16 @@ class Database:
         if table.name == 'users':
             res = table.search(field, value)
             fks = [
-                ForeignKeys('organization_id', '_id', self.fetch_collection('organizations')),
-                ForeignKeys('_id', 'submitter_id', self.fetch_collection('tickets'))
+                ForeignKeys('organization_id', '_id', self.fetch_collection('organizations'), alias={'name':"organization_name"}),
+                ForeignKeys('_id', 'submitter_id', self.fetch_collection('tickets'), alias={'subject':'ticket_subject'})
             ]
             enriched = table.join(res, fks)
             return enriched
         if table.name == 'tickets':
             res = table.search(field, value)
             fks = [
-                ForeignKeys('submitter_id', '_id', self.fetch_collection('users')),
-                ForeignKeys('organization_id', '_id', self.fetch_collection('organizations'))
+                ForeignKeys('submitter_id', '_id', self.fetch_collection('users'), alias={'name':"user_name", 'email': 'user_email'}),
+                ForeignKeys('organization_id', '_id', self.fetch_collection('organizations'), alias={'name':"organization_name"})
             ]
             enriched = table.join(res, fks)
             return enriched

@@ -64,14 +64,14 @@ class TestTable:
             assert isinstance(index, Index)
 
     def test_search(self, users):
-        res = users.search('organization_id', "104")
+        res = users.search('organization_id', "104", alias={'_id': 'user_id', 'name:': 'user_name'})
         assert len(res) == 4
 
     def test_join(self, users, organizations, tickets):
         res = users.search('_id', '71')
         fks = [
-            ForeignKeys('organization_id', '_id', organizations),
-            ForeignKeys('_id', 'submitter_id', tickets),
+            ForeignKeys('organization_id', '_id', organizations, alias={'name':"organization_name"}),
+            ForeignKeys('_id', 'submitter_id', tickets, alias={'subject':'ticket_subject'}),
         ]
         enriched = users.join(res, fks)
         assert len(enriched[0].get('organizations')) == 1
