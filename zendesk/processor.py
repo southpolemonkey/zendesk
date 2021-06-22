@@ -1,8 +1,9 @@
+import os
 from typing import Dict, List
 
 import click
 
-from .utilties import get_logger
+from .utilties import get_logger, read_yaml
 from .db import Database, TableNotExistsException
 from .model import Organizations, Tickets, Users
 
@@ -11,6 +12,8 @@ logger = get_logger(__name__)
 global database
 
 DATAMODELS = {"organization": Organizations, "ticket": Tickets, "users": Users}
+
+YAML=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
 
 
 class Processor:
@@ -72,10 +75,17 @@ class Processor:
             _present(result)
             print()
 
-    def load_db(self):
+    def load_db(self, yaml_fpath:str=YAML):
+        schema = read_yaml(yaml_fpath)
+
         global database
         database = Database()
-        database.load()
+        database.load(schema)
+
+    def drop_db(self):
+        global database
+        del database
+        click.echo('Dropped all tables!')
 
     def handle(self, query: str):
         parsed, is_match = self.parse_query(query)

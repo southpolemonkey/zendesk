@@ -93,7 +93,7 @@ class Table:
             return reference
 
     def _sequential_search(
-        self, field: str, value: str, alias: Dict[str, str] = "all"
+        self, field: str, value: str, alias: List[Dict[str, str]] = "all"
     ) -> List[Any]:
         res = []
         for record in self.records:
@@ -101,10 +101,16 @@ class Table:
                 if str(find) == value:
                     if alias == "all":
                         res.append(record)
-                    elif isinstance(alias, dict):
-                        filtered = {
-                            alias.get(k): v for k, v in record.items() if k in alias
-                        }
+                    elif isinstance(alias, list):
+                        filtered = {}
+                        for ele in alias:
+                            k = ele.get('field')
+                            v = ele.get('alias')
+                            if k in record:
+                                filtered[v] = record.get(k)
+                            # filtered = {
+                            #     alias.get(k): v for k, v in record.items() if k in alias
+                            # }
                         res.append(filtered)
                     else:
                         continue
@@ -128,7 +134,7 @@ class Table:
         return records
 
     def search(
-        self, field: str, value: str, alias: Dict[str, str] = "all"
+        self, field: str, value: str, alias: List[Dict[str, str]] = "all"
     ) -> List[Any]:
         """
         Search interface by default returns all fields from the collections.
@@ -137,7 +143,9 @@ class Table:
         :param alias:
             @key    selected fields
             @value  alias in response
-        :return:
+
+        example:
+        alias =  [{'alias': 'organization_name', 'field': 'name'}]
         """
 
         logger.debug(f"{self.name}: searching {field}={value}")
@@ -149,10 +157,12 @@ class Table:
                 if alias == "all":
                     record = self.records[i]
                     res.append(record)
-                elif isinstance(alias, dict):
+                elif isinstance(alias, list):
                     record = self.records[i]
                     filtered = {}
-                    for k, v in alias.items():
+                    for ele in alias:
+                        k = ele.get('field')
+                        v = ele.get('alias')
                         if k in record:
                             filtered[v] = record.get(k)
                     res.append(filtered)
@@ -170,31 +180,38 @@ class Database:
         self.name: str = "zendesk"
         self.collections: Dict[str, Table] = {}
 
-    def load(self, tables: List[str] = ["tickets", "organizations", "users"]) -> None:
+    def load(self, schemadef: Dict[str, Any]) -> None:
         """
-        Load files matching names in the give @tables parameters
+        Build database from the given schema object
         """
+        tables = schemadef.get('tables')
+        for table_name, schema in tables.items():
 
-        for table_name in tables:
             filename = os.path.join(resources, table_name + ".json")
-            logger.info(f"Loading {filename}")
+            logger.info(f"Loading {table_name} from {filename}")
 
-            table = Table(
-                name=table_name,
-                primary_key=pkeys.get(table_name, ""),
-                foreign_key=fkeys.get(table_name, []),
-                index_key=idx_keys.get(table_name, []),
-            )
+            index = schema.get('index')
+            primary_key = schema.get('primary_key')
+            external_fields =  schema.get('external_fields')
 
             try:
+                table = Table(
+                    name=table_name,
+                    primary_key=primary_key,
+                    foreign_key=external_fields,
+                    index_key=index,
+                )
+
                 # TODO: lazy load bigfile
                 with open(filename, "r") as f:
                     source = json.load(f)
                     table.records = source
                     self.collections[table_name] = table
                     table.build_index()
+                    print(f"{table_name} loads successfully!")
             except FileNotFoundError:
                 logger.error(f"{filename} not exists")
+                print(f"{table_name} failed. {filename} not exists")
 
     def fetch_collection(self, entity: str) -> Table:
         table = self.collections.get(entity)
@@ -208,42 +225,62 @@ class Database:
 
         table = self.fetch_collection(entity)
 
-        if table.name == "users":
-            res = table.search(field, value)
-            fks = [
-                ForeignKeys(
-                    "organization_id",
-                    "_id",
-                    self.fetch_collection("organizations"),
-                    alias={"name": "organization_name"},
-                ),
-                ForeignKeys(
-                    "_id",
-                    "submitter_id",
-                    self.fetch_collection("tickets"),
-                    alias={"subject": "ticket_subject"},
-                ),
-            ]
-            enriched = table.join(res, fks)
-            return enriched
-        if table.name == "tickets":
-            res = table.search(field, value)
-            fks = [
-                ForeignKeys(
-                    "submitter_id",
-                    "_id",
-                    self.fetch_collection("users"),
-                    alias={"name": "user_name", "email": "user_email"},
-                ),
-                ForeignKeys(
-                    "organization_id",
-                    "_id",
-                    self.fetch_collection("organizations"),
-                    alias={"name": "organization_name"},
-                ),
-            ]
-            enriched = table.join(res, fks)
+        res = table.search(field, value)
+        if foreign_keys := table.foreign_key:
+
+            foreign_key_list = []
+            for foreign_key in foreign_keys:
+                query = [
+                    ForeignKeys(
+                        foreign_key.get('local_table_key'),
+                        foreign_key.get('external_table_key'),
+                        self.fetch_collection(foreign_key.get('external_table_name')),
+                        foreign_key.get('alias')
+                    )
+                ]
+                foreign_key_list.append(query)
+
+            enriched = table.join(res, foreign_key_list)
             return enriched
         else:
-            res = table.search(field, value)
             return res
+
+        # if table.name == "users":
+
+            # fks = [
+            #     ForeignKeys(
+            #         "organization_id",
+            #         "_id",
+            #         self.fetch_collection("organizations"),
+            #         alias={"name": "organization_name"},
+            #     ),
+            #     ForeignKeys(
+            #         "_id",
+            #         "submitter_id",
+            #         self.fetch_collection("tickets"),
+            #         alias={"subject": "ticket_subject"},
+            #     ),
+            # ]
+            # enriched = table.join(res, ffks)
+            # return enriched
+        # if table.name == "tickets":
+        #     res = table.search(field, value)
+        #     fks = [
+        #         ForeignKeys(
+        #             "submitter_id",
+        #             "_id",
+        #             self.fetch_collection("users"),
+        #             alias={"name": "user_name", "email": "user_email"},
+        #         ),
+        #         ForeignKeys(
+        #             "organization_id",
+        #             "_id",
+        #             self.fetch_collection("organizations"),
+        #             alias={"name": "organization_name"},
+        #         ),
+        #     ]
+        #     enriched = table.join(res, fks)
+        #     return enriched
+        # else:
+        #     res = table.search(field, value)
+        #     return res

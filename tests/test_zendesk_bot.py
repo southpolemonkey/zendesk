@@ -1,6 +1,7 @@
 import pytest
 from zendesk.processor import Processor
 from zendesk.db import Database, Table, Index, TableNotExistsException, ForeignKeys
+from zendesk.utilties import read_yaml
 
 from typing import Dict
 
@@ -8,7 +9,8 @@ from typing import Dict
 @pytest.fixture()
 def db():
     db = Database()
-    db.load()
+    schemadef = read_yaml('../config.yaml')
+    db.load(schemadef)
     return db
 
 
@@ -76,6 +78,8 @@ class TestDatabase:
             assert isinstance(table_name, str)
             assert isinstance(collections, Table)
 
+        assert len(db.collections) == 3
+
     def test__exception(self, db):
         with pytest.raises(TableNotExistsException):
             db.search('table_not_exists', 'field', 'value')
@@ -89,18 +93,25 @@ class TestTable:
             assert isinstance(index, Index)
 
     def test_search(self, users):
-        res = users.search('organization_id', "104", alias={'_id': 'user_id', 'name:': 'user_name'})
+        res = users.search('organization_id', "104", alias=[{'alias': 'organization_name', 'field': 'name'}])
         assert len(res) == 4
 
     def test_join(self, users, organizations, tickets):
         res = users.search('_id', '71')
         fks = [
-            ForeignKeys('organization_id', '_id', organizations, alias={'name': "organization_name"}),
-            ForeignKeys('_id', 'submitter_id', tickets, alias={'subject': 'ticket_subject'}),
+            ForeignKeys('organization_id', '_id', organizations, alias=[{'name': "organization_name"}]),
+            ForeignKeys('_id', 'submitter_id', tickets, alias=[{'subject': 'ticket_subject'}]),
         ]
+
         enriched = users.join(res, fks)
         assert len(enriched[0].get('organizations')) == 1
         assert len(enriched[0].get('tickets')) == 3
+
+    def test_join_2(self, users, organizations, tickets):
+        res = users.search('_id', '71')
+        enriched = users.join(res, [])
+        assert enriched[0].get('organizations') is None
+        assert enriched[0].get('tickets') is None
 
 class TestIndex:
 

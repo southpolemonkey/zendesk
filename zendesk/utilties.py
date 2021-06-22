@@ -1,8 +1,9 @@
 import logging
 from logging import Logger
-
-from os.path import dirname, realpath, join, exists
 import os
+from os.path import dirname, realpath, join, exists
+
+import yaml
 
 LOGGER_LEVEL = logging.INFO
 
@@ -29,3 +30,16 @@ def get_logger(name: str) -> Logger:
     # logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
     return logger
+
+
+def read_yaml(file: str):
+    with open(file, 'r') as f:
+        dic = yaml.load(f, Loader=yaml.FullLoader)
+        return dic
+
+if __name__ == '__main__':
+    config = read_yaml("../config.yaml")
+    from pprint import pprint
+    pprint(config, indent=2)
+    # tables = config.get('tables')
+    # print(tables.keys())

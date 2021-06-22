@@ -1,0 +1,48 @@
+tables:
+  users:
+    primary_key: "_id"
+    index:
+      - "_id"
+    external_fields:
+      - external_table_name: organization
+        external_table_key: _id
+        local_table_key: organization_id
+        required_fields:
+          - field: name
+            alias: organization_name
+      - external_table_name: tickets
+        external_table_key: submitter_id
+        local_table_key: _id
+        required_fields:
+          - field: subject
+            alias: ticket_subject
+          - field: created_at
+            alias: ticket_created_at
+
+  tickets:
+    primary_key: "_id"
+    index:
+      - "submitter_id"
+      - "organization_id"
+    external_fields:
+      - external_table_name: organization
+        external_table_key: _id
+        local_table_key: organization_id
+        required_fields:
+          - field: name
+            alias: organization_name
+          - field: domain_names
+            alias: domain_names
+      - external_table_name: user
+        external_table_key: submitter_id
+        local_table_key: _id
+        required_fields:
+          - field: name
+            alias: user_name
+          - field: email
+            alias: user_email
+
+  organizations:
+    primary_key: "_id"
+    index:
+      - "_id"
