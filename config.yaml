@@ -34,8 +34,8 @@ tables:
           - field: domain_names
             alias: domain_names
       - external_table_name: users
-        external_table_key: submitter_id
-        local_table_key: _id
+        external_table_key: _id
+        local_table_key: submitter_id
         required_fields:
           - field: name
             alias: user_name

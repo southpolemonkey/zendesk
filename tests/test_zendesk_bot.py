@@ -85,7 +85,6 @@ class TestDatabase:
         assert len(res[0].get('organizations')) >= 1
         assert len(res[0].get('tickets')) >= 1
 
-
     def test__exception(self, db):
         with pytest.raises(TableNotExistsException):
             db.search('table_not_exists', 'field', 'value')
@@ -101,6 +100,10 @@ class TestTable:
     def test_search(self, users):
         res = users.search('organization_id', "104", alias=[{'alias': 'organization_name', 'field': 'name'}])
         assert len(res) == 4
+
+    def test_search_in_list(self, users):
+        res = users.search('tags', 'hartsville/hartley')
+        assert len(res) == 1
 
     def test_join(self, users, organizations, tickets):
         res = users.search('_id', '71')

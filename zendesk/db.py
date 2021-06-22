@@ -98,7 +98,7 @@ class Table:
         res = []
         for record in self.records:
             if find := record.get(field):
-                if str(find).lower() == str(value).lower():
+                if (str(find).lower() == str(value).lower()) or (isinstance(find, list) & (str(value).lower() in str(find).lower())):
                     if alias == "all":
                         res.append(record)
                     elif isinstance(alias, list):
