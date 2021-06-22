@@ -4,19 +4,23 @@ from zendesk.db import Database, Table, Index, TableNotExistsException, ForeignK
 
 from typing import Dict
 
+
 @pytest.fixture()
 def db():
     db = Database()
     db.load()
     return db
 
+
 @pytest.fixture()
 def users(db) -> Table:
     return db.collections.get('users')
 
+
 @pytest.fixture()
 def organizations(db) -> Table:
     return db.collections.get('organizations')
+
 
 @pytest.fixture()
 def tickets(db) -> Table:
@@ -27,6 +31,7 @@ def tickets(db) -> Table:
 def processor():
     processor = Processor()
     return processor
+
 
 class TestProcessor:
 
@@ -41,6 +46,23 @@ class TestProcessor:
         assert field == "organization_id"
         assert value == "value could be long string and contains @?"
 
+    def test_present(self, processor):
+        res = [{
+            "_id": 1,
+            "url": "http://initech.zendesk.com/api/v2/users/1.json",
+            "external_id": "74341f74-9c79-49d5-9611-87ef9b6eb75f",
+            "name": "Francisca Rasmussen",
+            "tickets": [
+                {"subject": "A Catastrophe in Micronesia", "priority": "low"},
+                {"subject": "Other ticket", "priority": "high"},
+            ],
+            "organizations": [
+                {"organization_name": "zendesk"}
+            ]
+        }]
+
+        processor.present(res)
+
 
 class TestDatabase:
 
@@ -53,9 +75,7 @@ class TestDatabase:
         with pytest.raises(TableNotExistsException):
             db.search('table_not_exists', 'field', 'value')
 
-
 class TestTable:
-
 
     def test_build_index(self, users):
         users_indexes = users.indexes
@@ -70,14 +90,12 @@ class TestTable:
     def test_join(self, users, organizations, tickets):
         res = users.search('_id', '71')
         fks = [
-            ForeignKeys('organization_id', '_id', organizations, alias={'name':"organization_name"}),
-            ForeignKeys('_id', 'submitter_id', tickets, alias={'subject':'ticket_subject'}),
+            ForeignKeys('organization_id', '_id', organizations, alias={'name': "organization_name"}),
+            ForeignKeys('_id', 'submitter_id', tickets, alias={'subject': 'ticket_subject'}),
         ]
         enriched = users.join(res, fks)
         assert len(enriched[0].get('organizations')) == 1
         assert len(enriched[0].get('tickets')) == 3
-
-
 
 class TestIndex:
 
@@ -90,6 +108,3 @@ class TestForeignKey:
     def test_initialize_foreign_key(self):
         fk = ForeignKeys('submitter_id', '_id', None)
         assert isinstance(fk, ForeignKeys)
-
-
-

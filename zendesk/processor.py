@@ -51,12 +51,23 @@ class Processor:
         beautify json objects
         """
         print("Results:\n")
-        for result in results:
+
+        def _present(result: Dict):
             for k, v in result.items():
-                if isinstance(v, list):
-                    print("{:<20}|{:>50}".format(k, ", ".join(v)))
-                else:
-                    print("{:<20}|{:>50}".format(k, v))
+                try:
+                    if isinstance(v, list):
+                        if isinstance(v[0], str):
+                            print("{:<20}|{:>50}".format(k, ", ".join(v)))
+                        elif isinstance(v[0], dict):
+                            for ele in v:
+                                _present(ele)
+                    else:
+                        print("{:<20}|{:>50}".format(k, v))
+                except TypeError:
+                    pass
+
+        for result in results:
+            _present(result)
             print()
 
     def load_db(self):
