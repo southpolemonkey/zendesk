@@ -39,9 +39,14 @@ class TestProcessor:
 
         assert isinstance(processor, Processor)
 
+    def test_handle(self, processor):
+        query = "search tickets created_at 2016-04-14T08:32:31 -10:00"
+        _, is_match = processor.parse_query(query)
+        assert is_match == True
+
     def test_parse_query(self, processor):
         query = "search users organization_id value could be long string and contains @?"
-        entity, field, value = processor.parse_query(query)
+        entity, field, value = processor.parse_query(query)[0]
         assert entity == "users"
         assert field == "organization_id"
         assert value == "value could be long string and contains @?"

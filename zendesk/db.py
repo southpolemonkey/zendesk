@@ -1,13 +1,12 @@
 from __future__ import annotations
 import json
 import os.path
-from typing import Dict, List, Any, Optional, Tuple, Iterable
+from typing import Dict, List, Any, Optional, Tuple
 from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .utilties import get_logger
 from .config import fkeys, pkeys, idx_keys
-from .model import UsersQueryResponse, TicketsQueryResponse, OrganizationQueryResponse
 
 logger = get_logger(__name__)
 

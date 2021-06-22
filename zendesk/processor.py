@@ -77,30 +77,33 @@ class Processor:
         database.load()
 
     def handle(self, query: str):
-        entity, field, value = self.parse_query(query)
-        if res := database.search(entity, field, value):
-            self.present(res)
+        parsed, is_match = self.parse_query(query)
+        if is_match:
+            entity, field, value = parsed
+            if res := database.search(entity, field, value):
+                self.present(res)
 
     def parse_query(self, query: str):
         global database
         try:
             import re
-            if match := re.match(r"(search)\s(\w+)\s(\w+)\s?([\w+\s.+=\-!?@()\[\]<>\/\\|\$\&\*]{0,})$", query):
+            if match := re.match(r"(search)\s(\w+)\s(\w+)\s?([\w+\s.+=\-!?@()\[\]<>\/\\|\$\&\*-:\*]{0,})$", query):
                 if len(match.groups()) == 4:
                     entity = match.groups()[1]
                     field = match.groups()[2]
                     value = match.groups()[3]
                     logger.info(f"Search {entity} {field} {value}")
-                    return entity, field, value
+                    return (entity, field, value), True
             else:
                 click.echo(
-                    """
-                    Unrecognized query pattern. 
-                    Use:  
-                        search (interactive model)
-                        search <entity> <field> <value>
-                """
-                )
+        """
+        Unrecognized query pattern. 
+        Use:  
+            search (interactive model)
+            search <entity> <field> <value>
+    """
+)
+                return "", False
         except NameError:
             if click.confirm(
                 "Database is not connected yet, could you like to connect?"
