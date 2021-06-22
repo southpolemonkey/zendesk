@@ -52,6 +52,7 @@ def main(command):
             click.clear()
         else:
             print("Invalid command")
+            help()
 
 
 if __name__ == "__main__":

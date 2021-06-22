@@ -79,3 +79,5 @@ app.py              entrypoint to zendesk_bot
 
 
 ## Assumptions
+- Database base sources files exist under `resourcs/`
+- Primary key contains a single field i.e composite key is not supported yet 

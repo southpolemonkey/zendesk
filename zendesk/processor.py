@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Dict, Optional, List
+from typing import Dict, List
 from .model import Organizations, Tickets, Users
 
 import click
@@ -38,7 +37,6 @@ class Processor:
 
         try:
             res = database.search(entity, field, value)
-            logger.debug(res)
             self.present(res)
         except NameError:
             if click.confirm(

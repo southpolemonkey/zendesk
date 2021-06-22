@@ -11,6 +11,7 @@ pkeys = {
 fkeys = {
     'users': [
         {"_id": ("organization", "organization_id")},
+        {"_id": ("tickets", "submitter_id")},
     ]
     ,
     'tickets': [
