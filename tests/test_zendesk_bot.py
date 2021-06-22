@@ -74,8 +74,8 @@ class TestTable:
             ForeignKeys('_id', 'submitter_id', tickets),
         ]
         enriched = users.join(res, fks)
-        assert len(enriched.get('organizations')) == 1
-        assert len(enriched.get('tickets')) == 3
+        assert len(enriched[0].get('organizations')) == 1
+        assert len(enriched[0].get('tickets')) == 3
 
 
 

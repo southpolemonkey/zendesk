@@ -47,9 +47,7 @@ def main(command):
         elif choice == "search":
             process.ask()
         elif choice.startswith("search"):
-            res = process.parse_query(choice)
-            if res:
-                print("Invalid query pattern")
+            process.handle(choice)
         elif choice == "clear":
             click.clear()
         else:
