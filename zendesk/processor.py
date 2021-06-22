@@ -56,11 +56,14 @@ class Processor:
             for k, v in result.items():
                 try:
                     if isinstance(v, list):
-                        if isinstance(v[0], str):
-                            print("{:<20}|{:>50}".format(k, ", ".join(v)))
-                        elif isinstance(v[0], dict):
-                            for ele in v:
-                                _present(ele)
+                        try:
+                            if isinstance(v[0], str):
+                                print("{:<20}|{:>50}".format(k, ", ".join(v)))
+                            elif isinstance(v[0], dict):
+                                for ele in v:
+                                    _present(ele)
+                        except IndexError:
+                            continue
                     else:
                         print("{:<20}|{:>50}".format(k, v))
                 except TypeError:
