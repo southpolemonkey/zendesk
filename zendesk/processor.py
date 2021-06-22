@@ -1,17 +1,16 @@
 from typing import Dict, List
-from .model import Organizations, Tickets, Users
 
 import click
 
-from .db import Database
 from .utilties import get_logger
-
+from .db import Database, TableNotExistsException
+from .model import Organizations, Tickets, Users
 
 logger = get_logger(__name__)
 
 global database
 
-DATAMODELS = {'organization': Organizations, 'ticket': Tickets, 'users': Users}
+DATAMODELS = {"organization": Organizations, "ticket": Tickets, "users": Users}
 
 
 class Processor:
@@ -43,6 +42,8 @@ class Processor:
                 "Database is not connected yet, could you like to connect?"
             ):
                 self.load_db()
+        except TableNotExistsException:
+            click.echo(f"{entity} not found in database")
 
     def present(self, results: List[Dict]) -> None:
         """
@@ -80,14 +81,21 @@ class Processor:
         parsed, is_match = self.parse_query(query)
         if is_match:
             entity, field, value = parsed
-            if res := database.search(entity, field, value):
-                self.present(res)
+            try:
+                if res := database.search(entity, field, value):
+                    self.present(res)
+            except TableNotExistsException:
+                click.echo(f"{entity} not found in database")
 
     def parse_query(self, query: str):
         global database
         try:
             import re
-            if match := re.match(r"(search)\s(\w+)\s(\w+)\s?([\w+\s.+=\-!?@()\[\]<>\/\\|\$\&\*-:\*]{0,})$", query):
+
+            if match := re.match(
+                r"(search)\s(\w+)\s(\w+)\s?([\w+\s.+=\-!?@()\[\]<>\/\\|\$\&\*-:\*]{0,})$",
+                query,
+            ):
                 if len(match.groups()) == 4:
                     entity = match.groups()[1]
                     field = match.groups()[2]
@@ -96,20 +104,19 @@ class Processor:
                     return (entity, field, value), True
             else:
                 click.echo(
-        """
+                    """
         Unrecognized query pattern. 
         Use:  
             search (interactive model)
             search <entity> <field> <value>
     """
-)
+                )
                 return "", False
         except NameError:
             if click.confirm(
                 "Database is not connected yet, could you like to connect?"
             ):
                 self.load_db()
-
 
     def list_searchable_fields(self) -> None:
 
@@ -118,8 +125,7 @@ class Processor:
         for name, model in DATAMODELS.items():
             columns = model.__annotations__.keys()
             print(f"{name}")
-            print(f"="*20)
+            print("=" * 20)
             for col in columns:
                 print(col)
             print()
-

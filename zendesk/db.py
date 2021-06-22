@@ -12,6 +12,7 @@ logger = get_logger(__name__)
 
 resources = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources")
 
+
 class TableNotExistsException(Exception):
     pass
 
@@ -19,12 +20,14 @@ class TableNotExistsException(Exception):
 class ColumnNotExistsException(Exception):
     pass
 
+
 @dataclass
 class ForeignKeys:
-    field:str
-    foreign_key:str
-    foreign_table:Table
+    field: str
+    foreign_key: str
+    foreign_table: Table
     alias: Dict[str, str] = field(default_factory=lambda: defaultdict)
+
 
 @dataclass
 class Index:
@@ -52,11 +55,12 @@ class Index:
 class Table:
     name: str
     primary_key: str = ""
-    foreign_key: List[Dict[str, Tuple]] = field(default_factory=defaultdict(list))
-    index_key: List = field(default_factory=list)
+    foreign_key: List[Dict[str, Tuple[str, str]]] = field(
+        default_factory=defaultdict(list)
+    )
+    index_key: List[str] = field(default_factory=list)
     records: List[Dict[Any, Any]] = field(default_factory=list)
     indexes: Dict[str, Index] = field(default_factory=lambda: defaultdict(Index))
-
 
     def _build_index(self, k: str) -> None:
         idx = Index(k)
@@ -64,7 +68,6 @@ class Table:
             key = str(record.get(k))
             idx.references[key].append(i)
         self.indexes[k] = idx
-
 
     def build_index(self) -> None:
         """
@@ -80,7 +83,6 @@ class Table:
                 if k != self.primary_key:
                     self._build_index(k)
 
-
     def _index_search(self, field: str, value: str) -> Optional[List[int]]:
         """
         Search by field value and return the index of occurrence
@@ -90,7 +92,9 @@ class Table:
             reference = index_record.search(str(value))
             return reference
 
-    def _sequential_search(self, field: str, value: str, alias: Dict[str, str] = "all") -> List[Any]:
+    def _sequential_search(
+        self, field: str, value: str, alias: Dict[str, str] = "all"
+    ) -> List[Any]:
         res = []
         for record in self.records:
             if find := record.get(field):
@@ -98,16 +102,18 @@ class Table:
                     if alias == "all":
                         res.append(record)
                     elif isinstance(alias, dict):
-                        filtered =  {alias.get(k): v for k, v in record.items() if k in alias}
+                        filtered = {
+                            alias.get(k): v for k, v in record.items() if k in alias
+                        }
                         res.append(filtered)
                     else:
                         continue
         return res
 
     def join(self, records: List[Dict], fks: List[ForeignKeys]) -> List[Any]:
-        '''
+        """
         Implementation of enrich table with external fields
-        '''
+        """
         for record in records:
             for fk in fks:
                 field = fk.field
@@ -115,14 +121,16 @@ class Table:
                 foreign_table = fk.foreign_table
                 alias = fk.alias
 
-                value = record.get(field)
-                res = foreign_table.search(foreign_key, value, alias=alias)
-                record[foreign_table.name] = res
+                if value := record.get(field):
+                    res = foreign_table.search(foreign_key, value, alias=alias)
+                    record[foreign_table.name] = res
 
         return records
 
-    def search(self, field: str, value: str, alias: Dict[str, str] = "all") -> List[Any]:
-        '''
+    def search(
+        self, field: str, value: str, alias: Dict[str, str] = "all"
+    ) -> List[Any]:
+        """
         Search interface by default returns all fields from the collections.
         :param field: field name
         :param value: value to search for
@@ -130,7 +138,7 @@ class Table:
             @key    selected fields
             @value  alias in response
         :return:
-        '''
+        """
 
         logger.debug(f"{self.name}: searching {field}={value}")
         indexes = self._index_search(field, value)
@@ -138,7 +146,7 @@ class Table:
         if indexes:
             res = []
             for i in indexes:
-                if alias== "all":
+                if alias == "all":
                     record = self.records[i]
                     res.append(record)
                 elif isinstance(alias, dict):
@@ -173,9 +181,9 @@ class Database:
 
             table = Table(
                 name=table_name,
-                primary_key=pkeys.get(table_name,""),
+                primary_key=pkeys.get(table_name, ""),
                 foreign_key=fkeys.get(table_name, []),
-                index_key=idx_keys.get(table_name, [])
+                index_key=idx_keys.get(table_name, []),
             )
 
             try:
@@ -195,29 +203,47 @@ class Database:
         else:
             raise TableNotExistsException
 
-
     def search(self, entity: str, field: str, value: str) -> List:
         logger.debug(f"searching {entity}: {field}={value}")
 
         table = self.fetch_collection(entity)
 
-        if table.name == 'users':
+        if table.name == "users":
             res = table.search(field, value)
             fks = [
-                ForeignKeys('organization_id', '_id', self.fetch_collection('organizations'), alias={'name':"organization_name"}),
-                ForeignKeys('_id', 'submitter_id', self.fetch_collection('tickets'), alias={'subject':'ticket_subject'})
+                ForeignKeys(
+                    "organization_id",
+                    "_id",
+                    self.fetch_collection("organizations"),
+                    alias={"name": "organization_name"},
+                ),
+                ForeignKeys(
+                    "_id",
+                    "submitter_id",
+                    self.fetch_collection("tickets"),
+                    alias={"subject": "ticket_subject"},
+                ),
             ]
             enriched = table.join(res, fks)
             return enriched
-        if table.name == 'tickets':
+        if table.name == "tickets":
             res = table.search(field, value)
             fks = [
-                ForeignKeys('submitter_id', '_id', self.fetch_collection('users'), alias={'name':"user_name", 'email': 'user_email'}),
-                ForeignKeys('organization_id', '_id', self.fetch_collection('organizations'), alias={'name':"organization_name"})
+                ForeignKeys(
+                    "submitter_id",
+                    "_id",
+                    self.fetch_collection("users"),
+                    alias={"name": "user_name", "email": "user_email"},
+                ),
+                ForeignKeys(
+                    "organization_id",
+                    "_id",
+                    self.fetch_collection("organizations"),
+                    alias={"name": "organization_name"},
+                ),
             ]
             enriched = table.join(res, fks)
             return enriched
         else:
             res = table.search(field, value)
             return res
-

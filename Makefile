@@ -23,8 +23,4 @@ pylint:
 
 radon:
 	@echo "Run Radon to compute complexity..."
-	@radon cc . --total-average -nb
-
-xenon:
-	@echo "Running Xenon..."
-	@xenon --max-absolute B --max-modules A --max-average A .
+	@radon cc zendesk/ --total-average -nb
