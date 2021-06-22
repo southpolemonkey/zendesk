@@ -34,13 +34,6 @@ def get_logger(name: str) -> Logger:
 
 
 def read_yaml(file: str) -> Dict[str, Any]:
-    with open(file, 'r') as f:
+    with open(file, "r") as f:
         dic = yaml.load(f, Loader=yaml.FullLoader)
         return dic
-
-if __name__ == '__main__':
-    config = read_yaml("../config.yaml")
-    from pprint import pprint
-    pprint(config, indent=2)
-    # tables = config.get('tables')
-    # print(tables.keys())

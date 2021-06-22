@@ -4,7 +4,7 @@ from typing import Dict, List
 import click
 
 from .utilties import get_logger, read_yaml
-from .db import Database, TableNotExistsException
+from .db import Database
 from .model import Organizations, Tickets, Users
 
 logger = get_logger(__name__)
@@ -13,7 +13,7 @@ global database
 
 DATAMODELS = {"organization": Organizations, "ticket": Tickets, "users": Users}
 
-YAML=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
+YAML = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
 
 
 class Processor:
@@ -45,8 +45,6 @@ class Processor:
                 "Database is not connected yet, could you like to connect?"
             ):
                 self.load_db()
-        # except TableNotExistsException:
-        #     click.echo(f"{entity} not found in database")
 
     def present(self, results: List[Dict]) -> None:
         """
@@ -75,7 +73,7 @@ class Processor:
             _present(result)
             print()
 
-    def load_db(self, yaml_fpath:str=YAML):
+    def load_db(self, yaml_fpath: str = YAML):
         schema = read_yaml(yaml_fpath)
 
         global database
@@ -85,7 +83,7 @@ class Processor:
     def drop_db(self):
         global database
         del database
-        click.echo('Dropped all tables!')
+        click.echo("Dropped all tables!")
 
     def handle(self, query: str):
         global database
@@ -128,11 +126,10 @@ class Processor:
             )
             return "", False
 
-
     def show_tables(self) -> None:
-        '''
+        """
         List all fields in each table
-        '''
+        """
         print("Searchable fields")
 
         for name, model in DATAMODELS.items():
@@ -144,9 +141,9 @@ class Processor:
             print()
 
     def show_db(self) -> None:
-        '''
+        """
         List all tables in database
-        '''
+        """
         try:
             global database
             for table in database.collections.keys():
