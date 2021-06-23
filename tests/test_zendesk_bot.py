@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from zendesk.processor import Processor
 from zendesk.db import Database, Table, Index, TableNotExistsException, ForeignKeys
@@ -5,11 +7,12 @@ from zendesk.utilties import read_yaml
 
 from typing import Dict
 
+fpath = os.path.dirname(os.path.dirname(__file__))
 
 @pytest.fixture()
 def db():
     db = Database()
-    schemadef = read_yaml('../config.yaml')
+    schemadef = read_yaml(os.path.join(fpath, 'config.yaml'))
     db.load(schemadef)
     return db
 
