@@ -13,12 +13,15 @@ def help():
     print(
         """
     Commands:
-        help
-        search
-        search <entity> <field> <value>
-        load
+        help                                show help information
+        
+        load                                load data 
+        search                              interactive query mode
+        search <entity> <field> <value>         
+        show db                             list all tables
+        show table                          list all fields
+        
         quit
-        fields
     """
     )
 
